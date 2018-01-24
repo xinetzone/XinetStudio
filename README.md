@@ -9,4 +9,8 @@
 
 -----
 
-# 学习
+## 学习历程
+
+开始时间：2018/1/24
+
+### [1. 了解什么是 Gluon?](https://github.com/q735613050/XinetStudio/blob/master/Gluon%20简介.md#L1)
