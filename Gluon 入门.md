@@ -75,6 +75,8 @@ unsupervised learning, 无监督学习
 
 首先安装 Anaconda，之后直接运行下面命令，安装 GPU 版本
 
+更多信息参考：https://mxnet.incubator.apache.org/versions/master/get_started/install.html
+
 ```sh
 pip install -U mxnet-cu90
 ```
