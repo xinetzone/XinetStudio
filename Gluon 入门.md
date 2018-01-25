@@ -73,7 +73,7 @@ unsupervised learning, 无监督学习
 
 # 安装
 
-首先安装 Anaconda，之后直接运行下面命令，安装 GPU ban
+首先安装 Anaconda，之后直接运行下面命令，安装 GPU 版本
 
 ```sh
 pip install -U mxnet-cu90
