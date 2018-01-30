@@ -118,7 +118,7 @@ net.add(gluon.nn.Dense(1))
 net.initialize(ctx=mx.gpu())
 ```
 
-输入GPU上的数据，会在GPU上计算结果
+输入 GPU 上的数据，会在 GPU 上计算结果
 
 ```{.python .input  n=13}
 data = nd.random.uniform(shape=[3,2], ctx=mx.gpu())

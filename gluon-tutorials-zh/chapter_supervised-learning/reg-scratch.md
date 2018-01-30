@@ -78,7 +78,7 @@ def init_params():
 
 这里我们引入$L_2$范数正则化。不同于在训练时仅仅最小化损失函数(Loss)，我们在训练时其实在最小化
 
-$$\text{loss} + \lambda \sum_{p \in \textrm{params}}\|p\|_2^2。$$
+$$\text{loss} + \lambda \sum_{p \in \textrm{params}}\|p\|_2^2$$
 
 直观上，$L_2$范数正则化试图惩罚较大绝对值的参数值。下面我们定义L2正则化。注意有些时候大家对偏移加罚，有时候不加罚。通常结果上两者区别不大。这里我们演示对偏移也加罚的情况：
 
@@ -107,7 +107,7 @@ def square_loss(yhat, y):
 def sgd(params, lr, batch_size):
     for param in params:
         param[:] = param - lr * param.grad / batch_size
-        
+
 def test(net, params, X, y):
     return square_loss(net(X, *params), y).mean().asscalar()
     #return np.mean(square_loss(net(X, *params), y).asnumpy())

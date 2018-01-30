@@ -66,7 +66,7 @@ test.shape
 
 我们使用pandas对数值特征做标准化处理：
 
-$$x_i = \frac{x_i - \mathbb{E} x_i}{\text{std}(x_i)}。$$
+$$x_i = \frac{x_i - \mathbb{E} x_i}{\text{std}(x_i)}$$
 
 ```{.python .input}
 numeric_feats = all_X.dtypes[all_X.dtypes != "object"].index
@@ -149,7 +149,7 @@ import matplotlib as mpl
 mpl.rcParams['figure.dpi']= 120
 import matplotlib.pyplot as plt
 
-def train(net, X_train, y_train, X_test, y_test, epochs, 
+def train(net, X_train, y_train, X_test, y_test, epochs,
           verbose_epoch, learning_rate, weight_decay):
     train_loss = []
     if X_test is not None:
@@ -222,7 +222,7 @@ def k_fold_cross_valid(k, epochs, verbose_epoch, X_train, y_train,
                     y_val_train = nd.concat(y_val_train, y_cur_fold, dim=0)
         net = get_net()
         train_loss, test_loss = train(
-            net, X_val_train, y_val_train, X_val_test, y_val_test, 
+            net, X_val_train, y_val_train, X_val_test, y_val_test,
             epochs, verbose_epoch, learning_rate, weight_decay)
         train_loss_sum += train_loss
         print("Test loss: %f" % test_loss)
@@ -265,7 +265,7 @@ print("%d-fold validation: Avg train loss: %f, Avg test loss: %f" %
 def learn(epochs, verbose_epoch, X_train, y_train, test, learning_rate,
           weight_decay):
     net = get_net()
-    train(net, X_train, y_train, None, None, epochs, verbose_epoch, 
+    train(net, X_train, y_train, None, None, epochs, verbose_epoch,
           learning_rate, weight_decay)
     preds = net(X_test).asnumpy()
     test['SalePrice'] = pd.Series(preds.reshape(1, -1)[0])

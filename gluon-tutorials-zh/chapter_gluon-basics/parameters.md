@@ -79,7 +79,7 @@ params.initialize(init=init.One(), force_reinit=True)
 print(net[0].weight.data(), net[0].bias.data())
 ```
 
-更多的方法参见[init的API](https://mxnet.incubator.apache.org/api/python/optimization.html#the-mxnet-initializer-package). 
+更多的方法参见[init的API](https://mxnet.incubator.apache.org/api/python/optimization.html#the-mxnet-initializer-package).
 
 ## 延后的初始化
 
@@ -106,7 +106,7 @@ net(x)
 net.collect_params()
 ```
 
-这时候我们看到shape里面的0被填上正确的值了。
+这时候我们看到 shape 里面的 $0$ 被填上正确的值了。
 
 ## 共享模型参数
 
