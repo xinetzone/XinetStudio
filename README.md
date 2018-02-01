@@ -1,4 +1,3 @@
-
 ----
 
 ## 准备
@@ -20,3 +19,5 @@
 3. [使用 autograd 来自动求导](https://nbviewer.jupyter.org/github/q735613050/XinetStudio/blob/master/mxnet-gluon-tutorial/3.%20使用%20autograd%20来自动求导.ipynb)
 
 4. [监督学习](https://github.com/q735613050/XinetStudio/tree/master/mxnet-gluon-tutorial/supervised-learning)
+
+5. [CNN](https://github.com/q735613050/XinetStudio/tree/master/mxnet-gluon-tutorial/convolutional-neural-networks)
