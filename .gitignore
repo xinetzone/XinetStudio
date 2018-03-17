@@ -1,3 +1,4 @@
-
+﻿
 XinetModel/Python学习/introcs-data/leipzig1m.txt
-XinetModel/TensorFlow/tensorflow-tutorial/1.6.0/Chapter03/.ipynb_checkpoints/1. 图，张量及会话-checkpoint.ipynb
+
+*.ipynb_checkpoints
