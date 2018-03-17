@@ -38,7 +38,7 @@ class DataLoader(object):
     def __len__(self):
         return len(self.dataset)//self.batch_size
 
-def transform(data, label, resize=None):
+def transform3D(data, label, resize=None):
     # transform a batch of examples
     if resize:
         n = data.shape[0]
@@ -49,7 +49,7 @@ def transform(data, label, resize=None):
     # change data from batch x height x weight x channel to batch x channel x height x weight
     return nd.transpose(data.astype('float32'), (0, 3, 1, 2))/255, label.astype('float32')
 
-def transform1(data, label, resize=None):
+def transform2D(data, label, resize=None):
     # transform a batch of examples
     if resize:
         n = data.shape[0]
@@ -61,7 +61,7 @@ def transform1(data, label, resize=None):
     return nd.transpose(data.astype('float32'), (2, 0, 1))/255, label.astype('float32')
 
 
-def transform2(data, label, resize=None):
+def transform(data, label, resize=None):
     # transform a batch of examples
     if resize:
         n = data.shape[0]
@@ -98,16 +98,56 @@ def try_all_gpus():
     return ctx_list
 
 
-def SGD(params, lr):
+def SGD(params, lr, batch_size):
     for param in params:
-        param -= lr * param.grad
+        param[:] -= lr * param.grad / batch_size
 
+
+def batch_norm2D(X, gamma, beta, is_training, moving_mean, moving_variance,
+               eps = 1e-5, moving_momentum = 0.9):
+    '''
+    事实上，在测试时我们还是需要继续使用批量归一化的，只是需要做些改动。
+    在测试时，我们需要把原先训练时用到的批量均值和方差替换成**整个**训练数据的均值和方差。
+    但是当训练数据极大时，这个计算开销很大。因此，我们用移动平均的方法来近似计算
+    '''
+    assert len(X.shape) in (2, 4)
+    # 全连接: batch_size x feature
+    if len(X.shape) == 2:
+        # 每个输入维度在样本上的平均和方差
+        mean = X.mean(axis=0)
+        variance = ((X - mean)**2).mean(axis=0)
+    # 2D卷积: batch_size x channel x height x width
+    else:
+        # 对每个通道算均值和方差，需要保持 4D 形状使得可以正确的广播
+        mean = X.mean(axis=(0,2,3), keepdims=True)
+        variance = ((X - mean)**2).mean(axis=(0,2,3), keepdims=True)
+        # 变形使得可以正确的广播
+        moving_mean = moving_mean.reshape(mean.shape)
+        moving_variance = moving_variance.reshape(mean.shape)
+
+    # 均一化
+    if is_training:
+        X_hat = (X - mean) / nd.sqrt(variance + eps)
+        #!!! 更新全局的均值和方差
+        moving_mean[:] = moving_momentum * moving_mean + (
+            1.0 - moving_momentum) * mean
+        moving_variance[:] = moving_momentum * moving_variance + (
+            1.0 - moving_momentum) * variance
+    else:
+        #!!! 测试阶段使用全局的均值和方差
+        X_hat = (X - moving_mean) / nd.sqrt(moving_variance + eps)
+
+    # 伸缩和偏移
+    return gamma.reshape(mean.shape) * X_hat + beta.reshape(mean.shape)
 
 def accuracy(output, label):
     return nd.mean(output.argmax(axis=1) == label).asscalar()
 
-
 def evaluate_accuracy(data_iterator, net, ctx):
+    '''
+    `is_training = False` 表示对测试数据进行了 Batch Normlization 处理
+    
+    '''
     acc = nd.array([0.], ctx= ctx)
     n = 0.
     if isinstance(data_iterator, mx.io.MXDataIter):
@@ -122,17 +162,18 @@ def evaluate_accuracy(data_iterator, net, ctx):
 
 
 def train(train_data, test_data, net, loss, trainer, ctx, num_epochs, batch_size, print_batches=None):
-    """Train a network"""
+    """
+    Train a network
+    `BN = True` 表示对训练数据进行了 Batch Normlization 处理
+    """
     print(("Start training on ", ctx))
     if isinstance(train_data, mx.io.MXDataIter):
         train_data.reset()
-        
+
+    n = len(train_data)   
     for epoch in range(num_epochs):
-        
         train_loss = 0.
         train_acc = 0.
-        m = 0.
-        n = len(train_data)
 
         start = time()
         for data, label in train_data:
@@ -142,15 +183,21 @@ def train(train_data, test_data, net, loss, trainer, ctx, num_epochs, batch_size
                 output = net(data)
                 L = loss(output, label)
             L.backward()
-            # 将梯度做平均，这样学习率会对 batch size 不那么敏感
-            trainer.step(batch_size)
-            m += len(label)
+            
+            if isinstance(trainer, gluon.Trainer):
+                trainer.step(batch_size)
+                trainer.set_learning_rate(trainer.learning_rate * 0.01)
+            else:
+                # 将梯度做平均，这样学习率会对 batch size 不那么敏感
+                trainer
+                
             train_loss += nd.mean(L).asscalar()
             train_acc += accuracy(output, label)
 
         test_acc = evaluate_accuracy(test_data, net, ctx)
+
         print(("Epoch %d. Loss: %g, Train acc %g, Test acc %g, Time %g sec" % (
-                epoch, train_loss/m, train_acc/n, test_acc, time() - start)))
+                epoch, train_loss/n, train_acc/n, test_acc, time() - start)))
 
 
 class Residual(nn.HybridBlock):
