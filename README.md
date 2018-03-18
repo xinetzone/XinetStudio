@@ -28,4 +28,4 @@
 ----
 
 # 我的 NoteBook 
-[笔记本地址](https://hub.mybinder.org/user/q735613050-xinetstudio-9b42sq6s/tree)
+[笔记本地址](https://mybinder.org/v2/gh/q735613050/XinetStudio/Opening)
