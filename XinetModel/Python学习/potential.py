@@ -1,6 +1,8 @@
 #-----------------------------------------------------------------------
 # potential.py
 #-----------------------------------------------------------------------
+import sys
+sys.path.append(r'D:\XinetStudio\XinetModel\Python学习\booksite')
 
 import stddraw
 import stdio

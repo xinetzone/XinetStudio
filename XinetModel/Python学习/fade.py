@@ -1,7 +1,8 @@
 #-----------------------------------------------------------------------
 # fade.py
 #-----------------------------------------------------------------------
-
+import sys
+sys.path.append(r'D:\XinetStudio\XinetModel\Python学习\booksite')
 import stddraw
 import sys
 from color import Color

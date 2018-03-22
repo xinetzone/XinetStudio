@@ -1,1 +1,2 @@
-from booksite import stdio, stddraw, stdaudio, stdrandom, stdarray, stdstats, color, picture, instream, outstream
+import sys
+sys.path.append(r'D:\XinetStudio\XinetModel\Python学习\booksite')

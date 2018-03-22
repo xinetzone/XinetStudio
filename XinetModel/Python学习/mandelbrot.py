@@ -3,6 +3,8 @@
 #-----------------------------------------------------------------------
 
 import sys
+sys.path.append(r'D:\XinetStudio\XinetModel\Python学习\booksite')
+
 import stddraw
 from color import Color
 from picture import Picture
