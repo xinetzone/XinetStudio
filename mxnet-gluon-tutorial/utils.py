@@ -8,6 +8,8 @@ import mxnet as mx
 import numpy as np
 from time import time
 import matplotlib.pyplot as plt
+import matplotlib as mpl
+import random
 
 class DataLoader(object):
     """similiar to gluon.data.DataLoader, but might be faster.
@@ -16,10 +18,11 @@ class DataLoader(object):
     time. But the limits are 1) all examples in dataset have the same shape, 2)
     data transfomer needs to process multiple examples at each time
     """
-    def __init__(self, dataset, batch_size, shuffle):
+    def __init__(self, dataset, batch_size, shuffle, transform=None):
         self.dataset = dataset
         self.batch_size = batch_size
         self.shuffle = shuffle
+        self.transform = transform
 
     def __iter__(self):
         data = self.dataset[:]
@@ -33,8 +36,12 @@ class DataLoader(object):
             y = nd.array(y.asnumpy()[idx])
 
         for i in range(n//self.batch_size):
-            yield (X[i*self.batch_size:(i+1)*self.batch_size],
-                   y[i*self.batch_size:(i+1)*self.batch_size])
+            if self.transform is not None:
+                yield self.transform(X[i*self.batch_size:(i+1)*self.batch_size], 
+                                     y[i*self.batch_size:(i+1)*self.batch_size])
+            else:
+                yield (X[i*self.batch_size:(i+1)*self.batch_size],
+                       y[i*self.batch_size:(i+1)*self.batch_size])
 
     def __len__(self):
         return len(self.dataset)//self.batch_size
@@ -42,19 +49,21 @@ class DataLoader(object):
 def load_data_fashion_mnist(batch_size, resize=None, root="~/.mxnet/datasets/fashion-mnist"):
     """download the fashion mnist dataest and then load into memory"""
     def transform_mnist(data, label):
-        # transform a batch of examples
+        # Transform a batch of examples.
         if resize:
             n = data.shape[0]
             new_data = nd.zeros((n, resize, resize, data.shape[3]))
             for i in range(n):
                 new_data[i] = image.imresize(data[i], resize, resize)
             data = new_data
-        # change data from batch x height x weight x channel to batch x channel x height x weight
-        return nd.transpose(data.astype('float32'), (2, 0, 1))/255, label.astype('float32')
-    mnist_train = gluon.data.vision.FashionMNIST(root=root, train=True, transform=transform_mnist)
-    mnist_test = gluon.data.vision.FashionMNIST(root=root, train=False, transform=transform_mnist)
-    train_data = DataLoader(mnist_train, batch_size, shuffle=True)
-    test_data = DataLoader(mnist_test, batch_size, shuffle=False)
+        # change data from batch x height x width x channel to batch x channel x height x width
+        return nd.transpose(data.astype('float32'), (0,3,1,2))/255, label.astype('float32')
+
+    mnist_train = gluon.data.vision.FashionMNIST(root=root, train=True, transform=None)
+    mnist_test = gluon.data.vision.FashionMNIST(root=root, train=False, transform=None)
+    # Transform later to avoid memory explosion. 
+    train_data = DataLoader(mnist_train, batch_size, shuffle=True, transform=transform_mnist)
+    test_data = DataLoader(mnist_test, batch_size, shuffle=False, transform=transform_mnist)
     return (train_data, test_data)
 
 def try_gpu():
@@ -87,6 +96,7 @@ def SGD(params, lr):
 def accuracy(output, label):
     return nd.mean(output.argmax(axis=1)==label).asscalar()
 
+
 def _get_batch(batch, ctx):
     """return data and label on ctx"""
     if isinstance(batch, mx.io.DataBatch):
@@ -108,10 +118,12 @@ def evaluate_accuracy(data_iterator, net, ctx=[mx.cpu()]):
     for batch in data_iterator:
         data, label, batch_size = _get_batch(batch, ctx)
         for X, y in zip(data, label):
+            y = y.astype('float32')
             acc += nd.sum(net(X).argmax(axis=1)==y).copyto(mx.cpu())
             n += y.size
         acc.wait_to_read() # don't push too many operators into backend
     return acc.asscalar() / n
+
 
 def train(train_data, test_data, net, loss, trainer, ctx, num_epochs, print_batches=None):
     """Train a network"""
@@ -304,14 +316,14 @@ def train_and_predict_rnn(rnn, is_random_iter, epochs, num_steps, hidden_dim,
                 if is_lstm:
                     state_c = nd.zeros(shape=(batch_size, hidden_dim), ctx=ctx)
             with autograd.record():
-                # outputs shape：(batch_size, vocab_size)
+                # outputs shape: (batch_size, vocab_size)
                 if is_lstm:
                     outputs, state_h, state_c = rnn(get_inputs(data), state_h,
                                                     state_c, *params) 
                 else:
                     outputs, state_h = rnn(get_inputs(data), state_h, *params)
                 # Let t_ib_j be the j-th element of the mini-batch at time i.
-                # label shape：（batch_size * num_steps）
+                # label shape: (batch_size * num_steps)
                 # label = [t_0b_0, t_0b_1, ..., t_1b_0, t_1b_1, ..., ].
                 label = label.T.reshape((-1,))
                 # Concatenate outputs:
@@ -335,4 +347,60 @@ def train_and_predict_rnn(rnn, is_random_iter, epochs, num_steps, hidden_dim,
                       hidden_dim, ctx, idx_to_char, char_to_idx, get_inputs,
                       is_lstm))
             print()
+
+def set_fig_size(mpl, figsize=(3.5, 2.5)):
+    """为matplotlib生成的图片设置大小。"""
+    mpl.rcParams['figure.figsize'] = figsize
+
+
+def data_iter(batch_size, num_examples, X, y):
+    """遍历数据集。"""
+    idx = list(range(num_examples))
+    random.shuffle(idx)
+    for i in range(0, num_examples, batch_size):
+        j = nd.array(idx[i: min(i + batch_size, num_examples)])
+        yield X.take(j), y.take(j)
+
+
+def linreg(X, w, b):
+    """线性回归模型。"""
+    return nd.dot(X, w) + b
+
+
+def squared_loss(yhat, y):
+    """平方损失函数。"""
+    return (yhat - y.reshape(yhat.shape)) ** 2 / 2
+
+
+def optimize(batch_size, trainer, num_epochs, decay_epoch, log_interval, X, y,
+             net):
+    """优化目标函数。"""
+    dataset = gluon.data.ArrayDataset(X, y)
+    data_iter = gluon.data.DataLoader(dataset, batch_size, shuffle=True)
+    square_loss = gluon.loss.L2Loss()
+    y_vals = [square_loss(net(X), y).mean().asnumpy()]
+    for epoch in range(1, num_epochs + 1): 
+        # 学习率自我衰减。
+        if decay_epoch and epoch > decay_epoch:
+            trainer.set_learning_rate(trainer.learning_rate * 0.1)
+        for batch_i, (features, label) in enumerate(data_iter):
+            with autograd.record():
+                output = net(features)
+                loss = square_loss(output, label)
+            loss.backward()
+            trainer.step(batch_size)
+            if batch_i * batch_size % log_interval == 0:
+                y_vals.append(square_loss(net(X), y).mean().asnumpy())
+    print('w:', net[0].weight.data(), '\nb:', net[0].bias.data(), '\n')
+    x_vals = np.linspace(0, num_epochs, len(y_vals), endpoint=True)
+    semilogy(x_vals, y_vals, 'epoch', 'loss')
+
+
+def semilogy(x_vals, y_vals, x_label, y_label, figsize=(3.5, 2.5)):
+    """绘图（y取对数）。"""		
+    set_fig_size(mpl, figsize)
+    plt.semilogy(x_vals, y_vals)
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+    plt.show()
 
