@@ -26,4 +26,4 @@
 ----
 
 # 我的 NoteBook 
-[笔记本地址](https://mybinder.org/v2/gh/q735613050/XinetStudio/Opening)
+[笔记本地址](https://mybinder.org/v2/gh/q735613050/XinetStudio/opening)
